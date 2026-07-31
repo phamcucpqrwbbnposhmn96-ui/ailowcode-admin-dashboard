@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-LowCode Admin Dashboard — 对话式低代码后台</title>
+    <style>
+        /* 极简设计：无 CSS 框架依赖 */
+        :root { --primary: #3b82f6; --bg: #f8fafc; --surface: #ffffff; --text: #1e293b; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+        body { background:var(--bg); color:var(--text); }
+        .layout { display:flex; height:100vh; }
+        .sidebar { width:250px; background:var(--surface); border-right:1px solid #e2e8f0; padding:1rem; overflow-y:auto; }
+        .main { flex:1; padding:2rem; overflow-y:auto; }
+        .card { background:var(--surface); border:1px solid #e2e8f0; border-radius:8px; padding:1.5rem; margin-bottom:1rem; }
+        input, textarea, select { width:100%; padding:0.75rem; margin:0.5rem 0; border:1px solid #cbd5e1; border-radius:4px; }
+        button { background:var(--primary); color:white; border:none; padding:0.75rem 1.5rem; border-radius:4px; cursor:pointer; }
+        button:hover { opacity:0.9; }
+        .draggable { border:1px dashed #94a3b8; padding:1rem; margin:0.5rem 0; cursor:move; user-select:none; }
+        .drop-zone { min-height:80px; border:2px dashed #cbd5e1; padding:1rem; margin:0.5rem 0; background:#f1f5f9; border-radius:4px; }
+    </style>
+</head>
+<body class="layout">
+    <aside class="sidebar">
+        <h2>🔧 组件库</h2>
+        <div class="draggable" draggable="true" data-type="title">标题卡片</div>
+        <div class="draggable" draggable="true" data-type="button">按钮</div>
+        <div class="draggable" draggable="true" data-type="input">输入框</div>
+        <div class="draggable" draggable="true" data-type="textarea">文本区</div>
+        <div class="draggable" draggable="true" data-type="select">下拉菜单</div>
+        <hr style="margin:1.5rem 0;">
+        <h2>💬 AI 对话生成</h2>
+        <textarea id="aiPrompt" placeholder="用自然语言描述你要生成的页面..."></textarea>
+        <button onclick="generateByAI()">生成页面</button>
+    </aside>
+    <main class="main">
+        <h1>AI-LowCode Admin Dashboard</h1>
+        <p style="color:#64748b; margin-bottom:1rem;">拖拽组件到下方，或用 AI 一句话生成页面</p>
+        
+        <div class="card">
+            <h3>📋 画布区域（拖放组件）</h3>
+            <div id="dropZone" class="drop-zone"></div>
+        </div>
+
+        <div class="card" id="settingsPanel" style="display:none;">
+            <h3>⚙️ 设置</h3>
+            <label>页面标题</label>
+            <input type="text" id="pageTitle" placeholder="请输入页面标题">
+            <label>主题颜色</label>
+            <select id="themeColor">
+                <option value="#3b82f6">蓝色</option>
+                <option value="#8b5cf6">紫色</option>
+                <option value="#10b981">绿色</option>
+                <option value="#ef4444">红色</option>
+            </select>
+            <button onclick="exportProject()">导出为 GitHub Pages</button>
+            <button onclick="saveToGitHub()" style="background:#64748b; margin-left:0.5rem;">推送到 GitHub</button>
+        </div>
+    </main>
+
+    <script>
+        // ========= 拖放功能 =========
+        let draggedItem = null;
+        document.querySelectorAll('.draggable').forEach(item => {
+            item.addEventListener('dragstart', e => { draggedItem = e.target.dataset.type; e.dataTransfer.effectAllowed = 'copy'; });
+            item.addEventListener('dragend', () => { draggedItem = null; });
+        });
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+        dropZone.addEventListener('drop', e => { 
+            e.preventDefault();
+            const components = {
+                title: '<div class="card" style="background:#eff6ff; border-color:#bfdbfe;"><h3>${componentTitle}</h3></div>',
+                button: '<button class="btn" style="background:var(--primary)">点击我</button>',
+                input: '<input type="text" placeholder="请输入内容">',
+                textarea: '<textarea placeholder="输入你的想法"></textarea>',
+                select: '<select><option>选项1</option><option>选项2</option></select>'
+            };
+            dropZone.innerHTML += components[draggedItem].replace('${componentTitle}', '新组件');
+        });
+
+        // ========= AI 生成功能 =========
+        function generateByAI() {
+            const prompt = document.getElementById('aiPrompt').value;
+            if (!prompt) return alert('请在对话框中输入描述...');
+            // 这里是真正的 AI 集成点——实际部署时会接入 OpenAI API
+            alert(`✨ 正在根据"${prompt}"生成页面... \n\n（实际部署时此处会调用 AI 生成完整的 HTML/CSS 结构）`);
+        }
+
+        // ========= 导出 & 推送 =========
+        function exportProject() {
+            const pageTitle = document.getElementById('pageTitle').value || '我的低代码后台';
+            const theme = document.getElementById('themeColor').value;
+            document.documentElement.style.setProperty('--primary', theme);
+            alert('页面已更新！复制到 GitHub Pages 即可部署。\n主题颜色已设为：' + theme);
+        }
+
+        async function saveToGitHub() {
+            // ⚠️ 重要：请在浏览器开发者工具的 Console 中运行以下命令来配置你的 GitHub Token：
+            //   window.GH_TOKEN = "ghp_你的个人访问令牌";
+            const accessToken = window.GH_TOKEN || "";
+            
+            if (!accessToken) {
+                alert("⚠️ GitHub Token 未设置！\n\n请打开浏览器开发者工具（F12）→ Console 标签，然后运行：\n\nwindow.GH_TOKEN = \"ghp_your_personal_access_token\";\n\n再点击按钮重试。\n\n或者在你的 GitHub 上创建一个 PAT：https://github.com/settings/tokens/new");
+                return;
+            }
+            const owner = "phamcucpqrwbbnposhmn96-ui";
+            const repo = "ailowcode-admin-dashboard";
+            const branch = "main";
+            const fileContent = document.documentElement.outerHTML;
+            
+            try {
+                // 检查仓库是否存在，不存在则创建
+                const checkRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    method: 'HEAD'
+                });
+                
+                let createRepo = false;
+                if (checkRes.status === 404) {
+                    createRepo = true;
+                    await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        method: 'POST',
+                        body: JSON.stringify({ name: repo, description: "AI-LowCode Admin Dashboard - 对话式低代码后台系统", private: false })
+                    });
+                }
+                
+                // 获取分支树（用于找到 existing blob/tree）
+                const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                const treeData = await treeRes.json();
+                
+                const existingBlob = treeData.tree.find(f => f.path === 'index.html');
+                
+                if (existingBlob) {
+                    // 更新现有文件
+                    await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/index.html`, {
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        method: 'PUT',
+                        body: JSON.stringify({ message: `更新: ${new Date().toLocaleDateString()}`, content: btoa(fileContent), sha: existingBlob.sha })
+                    });
+                } else {
+                    // 新建文件
+                    await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/index.html`, {
+                        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                        method: 'PUT',
+                        body: JSON.stringify({ message: `初始提交: ${new Date().toLocaleDateString()}`, content: btoa(fileContent) })
+                    });
+                }
+                
+                alert('✅ 已成功推送至 GitHub！访问 https://' + owner + '.github.io/' + repo + '/ 查看你的 AI-LowCode 后台！');
+            } catch (err) {
+                console.error(err);
+                alert('❌ 推送失败：' + (err.message || '未知错误'));
+            }
+        }
+    </script>
+</body>
+</html>
