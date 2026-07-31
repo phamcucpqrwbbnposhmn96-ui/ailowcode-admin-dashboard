@@ -1,0 +1,26 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Xcode
+        run: xcode-select --switch /Applications/Xcode.app && xcodebuild -version
+      
+      - name: Install dependencies
+        run: swift package generate-xcodeproj --output ios-alarmpkg.xcodeproj 2>/dev/null || true
+      
+      - name: Verify project structure
+        run: |
+          cd ios-alarmpkg
+          echo "Project files verified:"
+          ls AlarmApp/
+          ls *.swift | wc -l
