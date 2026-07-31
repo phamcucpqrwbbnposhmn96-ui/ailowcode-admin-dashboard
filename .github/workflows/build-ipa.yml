@@ -1,26 +1,133 @@
+# 📱 iOS Alarm App - GitHub Actions Build Workflow
+# 使用说明：
+# 1. 将 Apple Developer 证书上传到 GitHub Secrets:
+#    - APPLE_DEVELOPER_CERTIFICATE (base64编码的.p12文件)
+#    - APPLE_DEVELOPER_CERTIFICATE_PASSWORD
+#    - APPLE_PROVISIONING_PROFILE (base64编码的.mobileprovision)
+#    - APPLE_TEAM_ID (你的团队ID)
+
 name: Build IPA
 
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  APPLE_DEVELOPER_CERTIFICATE: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE }}
+  APPLE_DEVELOPER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
+  APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+  APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  APP_IDENTIFIER: "com.phamcucpqrwbbnposhmn96-ui.alarm"
 
 jobs:
   build:
     runs-on: macos-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - name: Setup Xcode
-        run: xcode-select --switch /Applications/Xcode.app && xcodebuild -version
+      - name: Show project structure
+        run: |
+          echo "Project files:"
+          ls -la ios-alarmpkg/
+          ls -la ios-alarmpkg/AlarmApp/
       
-      - name: Install dependencies
-        run: swift package generate-xcodeproj --output ios-alarmpkg.xcodeproj 2>/dev/null || true
+      - name: Setup Xcode environment
+        run: |
+          xcode-select --switch /Applications/Xcode.app
+          xcodebuild -version
+          xcodebuild -list -project ios-alarmpkg/Package.swift 2>/dev/null || echo "Using Swift Package Manager"
       
-      - name: Verify project structure
+      - name: Install Apple Certificate
+        run: |
+          if [ -z "$APPLE_DEVELOPER_CERTIFICATE" ]; then
+            echo "❌ ERROR: APPLE_DEVELOPER_CERTIFICATE secret is not set!"
+            echo "Please add your .p12 certificate as a secret in GitHub repository settings."
+            exit 1
+          fi
+          
+          # Create temporary keychain
+          security create-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security unlock-keychain -p "" build.keychain
+          
+          # Decode and import certificate
+          echo "$APPLE_DEVELOPER_CERTIFICATE" | base64 -d > /tmp/cert.p12
+          security import /tmp/cert.p12 -k build.keychain -P "$APPLE_DEVELOPER_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          
+          # Import provisioning profile
+          echo "$APPLE_PROVISIONING_PROFILE" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          rm ~/Library/MobileDevice/Provisioning\ Profiles/temp.mobileprovision
+          
+          echo "✅ Certificate installed successfully"
+          security find-identity -v -p codesigning build.keychain
+      
+      - name: Build with Swift Package Manager
         run: |
           cd ios-alarmpkg
-          echo "Project files verified:"
-          ls AlarmApp/
-          ls *.swift | wc -l
+          echo "Building with SPM..."
+          swift build --configuration release 2>&1 || {
+            echo "SPM build failed, trying Xcode approach..."
+            # Fallback: Generate Xcode project and build
+            swift package generate-xcodeproj --output AlarmApp.xcodeproj
+            xcodebuild archive \
+              -scheme AlarmApp \
+              -destination 'generic/platform=iOS' \
+              -archivePath build/AlarmApp \
+              CODE_SIGN_IDENTITY="iPhone Developer" \
+              CODE_SIGN_STYLE=Automatic \
+              DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+              COMPILER_INDEX_STORE_ENABLE=NO
+          }
+      
+      - name: Export IPA
+        run: |
+          if [ ! -f "ios-alarmpkg/build/AlarmApp.xcarchive/Applications/AlarmApp.app" ]; then
+            echo "⚠️ Archive not found, checking alternative paths..."
+            find . -name "*.xcarchive" -o -name "*.app" 2>/dev/null
+            echo "❌ Build artifacts not found. Check the build logs above."
+            exit 1
+          fi
+          
+          # Export IPA from archive
+          xcodebuild -exportArchive \
+            -archivePath ios-alarmpkg/build/AlarmApp.xcarchive \
+            -exportPath build/out \
+            -exportOptionsPlist ios-alarmpkg/export.plist || {
+            echo "Export failed, trying manual IPA creation..."
+            # Alternative: create IPA manually from .app
+            BUILD_DATE=$(date +%Y%m%d%H%M%S)
+            mkdir -p Payload
+            cp -r ios-alarmpkg/build/AlarmApp.xcarchive/Applications/AlarmApp.app Payload/
+            zip -r "AlarmApp_${BUILD_DATE}.ipa" Payload/
+            mv "AlarmApp_${BUILD_DATE}.ipa" build/
+            rm -rf Payload
+          }
+      
+      - name: Verify IPA
+        run: |
+          echo "Checking for IPA files..."
+          ls -la ios-alarmpkg/build/*.ipa 2>/dev/null || echo "No IPA found in expected location"
+          find ios-alarmpkg -name "*.ipa" 2>/dev/null | head -5
+      
+      - name: Upload IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alarm-app-ipa
+          path: "**/*.ipa"
+          retention-days: 7
+      
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ~/Library/Logs/DerivedLog/*
+            **/*.log
+          retention-days: 5
