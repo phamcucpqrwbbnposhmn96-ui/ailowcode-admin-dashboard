@@ -8,9 +8,11 @@
     <key>signingStyle</key><string>manual</string>
     <key>provisioningProfiles</key>
     <dict>
-        <key>*</key><string>Your Profile</string>
+        <key>com.phamcucpqrwbbnposhmn96-ui.alarm</key><string>Your Provisioning Profile Name</string>
     </dict>
     <key>signingCertificate</key><string>iOS Development</string>
-    <key>teamID</key><string>Your Team ID</string>
+    <key>teamID</key><string></string>
+    <key>uploadBitcode</key><false/>
+    <key>uploadSymbols</key><true/>
 </dict>
 </plist>
