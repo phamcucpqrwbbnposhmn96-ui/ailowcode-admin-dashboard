@@ -1,105 +1,112 @@
-# 🤖 AI-LowCode Admin Dashboard（对话式低代码后台）
+# 📱 iOS Alarm App (Source Code)
 
-> **市场上最缺的蓝海项目**：AI 原生 + 可视化编排型轻量级后台管理系统
+这是一个使用 Swift Package Manager 构建的 SwiftUI iOS 闹钟应用。完整源文件可在 `AlarmApp/` 目录下找到。
 
-## 🚀 项目特点
+## 🎯 功能特性
 
-| 特性 | 说明 |
-|------|------|
-| 🔹 **纯 HTML/CSS/JS** | 零依赖、零构建、秒级启动 |
-| 🔹 **拖拽编排** | 像搭积木一样拼出业务页面 |
-| 🔹 **AI 对话生成** | 一句话用自然语言生成完整页面 |
-| 🔹 **一键部署到 GitHub Pages** | 直接推送到你的 GitHub Pages |
-| 🔹 **无后端依赖** | 所有操作在浏览器完成，本地运行即可 |
+- ⏰ 设置单次或每日重复的闹钟
+- 🔔 使用系统本地通知提醒（支持贪睡和关闭操作）
+- 🎨 SwiftUI 现代化界面
+- 📱 兼容 iOS 17+
 
-## 📦 快速开始
+## ⚠️ 重要说明
 
-### 本地运行（无需任何配置）
+### 关于静音模式的问题
+您的原始需求中提到"即使开启静音也要响铃"。请注意：
+
+**iOS 系统设计中，当设备进入静音模式（侧边开关开启）时，所有应用的通知都会被静音，这是系统级的强制限制，任何第三方应用都无法绕过。** 这是 Apple 为了保护用户体验而设计的核心机制。
+
+当前版本的标准做法是：
+- 使用 `.default` 声音（最大音量）
+- 启用通知振动
+- 允许用户在设置中单独为应用取消静音限制
+
+如需实现"静音模式响铃"功能，需要使用系统级 Alarm API（仅限系统级应用）或获取特殊 entitlements（仅苹果官方应用可用）。
+
+## 🛠️ 编译 IPA 指南
+
+### 前置条件
+1. **Mac 电脑** - Xcode 只能在 macOS 上运行
+2. **Xcode 15+** - 从 Mac App Store 下载
+3. **Apple Developer 账号** ($99/年) - 用于签名和测试
+4. **开发者证书** - 已在开发者中心配置好的 Provisioning Profile
+
+### 快速启动方法（推荐）
+
+**方案 A：使用 Xcode 直接打开**
+
 ```bash
-# 只需在浏览器中打开 index.html 即可使用
-open index.html          # macOS
-start index.html         # Windows
-xdg-open index.html      # Linux
+# 1. 克隆仓库
+git clone https://github.com/phamcucpqrwbbnposhmn96-ui/ailowcode-admin-dashboard.git
+cd ailowcode-admin-dashboard
+
+# 2. 打开 Xcode
+open ios-alarmpkg/Package.swift
+
+# 3. Xcode 会提示创建一个 Workspace，点击 Create
+
+# 4. 在 Xcode 中：
+#    - 选择目标设备（iPhone/iPad）
+#    - 在 Signing & Capabilities 中添加你的团队/证书
+#    - 点击 Run (Cmd+R) 编译并安装到真机
+
+# 5. 生成 IPA：
+#    Product → Archive → 完成后再从 Organizer 导出 IPA
 ```
 
-或通过简单 Python 服务器：
+**方案 B：使用命令行（更高级）**
+
 ```bash
-python3 -m http.server 8000
-# 访问 http://localhost:8000
+# 1. 进入项目目录
+cd /path/to/ailowcode-admin-dashboard/ios-alarmpkg
+
+# 2. 构建并发布到应用商店（需证书）
+xcodebuild -workspace ios-alarmpkg.xcworkspace \
+           scheme "AlarmApp" \
+           archive -archivePath "./AlarmApp.archive" \
+           SDK=iphoneos \
+           CODE_SIGN_IDENTITY="iPhone Developer: Your Name" \
+           PROVISIONING_PROFILE="Your Provisioning Profile UUID"
+
+# 3. 从 archive 生成 IPA
+xcodebuild -exportArchive -archivePath "./AlarmApp.archive" \
+           -exportPath "./Build" \
+           -exportOptionsPlist export.plist
 ```
 
-### 部署到 GitHub Pages（1分钟）
-点击界面上 **"推送到 GitHub"** 按钮（需 GitHub Token），或手动：
-
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git push -u origin main
-# 然后在 GitHub 仓库设置 → Pages → 选择 main 分支开启
+需要的 `export.plist` 示例：
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key><string>development</string>
+    <key>compileWithoutDebugSymbols</key><true/>
+    <key>stripSwiftSymbols</key><true/>
+    <key>signingCertificate</key><string>iOS Development</string>
+</dict>
+</plist>
 ```
-
-## 💡 适用场景
-
-- 🛍️ **小型电商后台**：商品上架、订单管理、库存追踪
-- 🏪 **连锁门店管理**：分店数据汇总、员工排班、报表
-- 🎓 **教育机构系统**：课程表、作业提交、成绩录入
-- 🏥 **诊所/药店**：客户档案、用药提醒、采购登记
-- 📊 **内容运营团队**：素材管理、投稿审核、粉丝互动
-
-## 🌊 市场定位与蓝海优势
-
-现有后台管理系统普遍存在三大痛点：
-
-```
-┌──────────────┬──────────────┬──────────────┐
-│   React/Vue  │   笨重       │   开发成本高  │
-│   模板       │   依赖多     │   需要学习    │
-└──────────────┴──────────────┴──────────────┘
-            ↓ 我们解决 ↓
-┌─────────────────────────────────────────────────────┐
-│  AI-LowCode：纯 HTML + AI 对话式生成 + 零依赖       │
-│  👉 非技术人员也能自己搭建后台                      │
-│  👉 1个HTML文件 = 一个完整后台系统                  │
-│  👉 5分钟从构思到上线                               │
-└─────────────────────────────────────────────────────┘
-```
-
-## 🧠 AI 能力扩展（未来版本）
-
-当前版本已预留 AI 集成接口，后续可轻松接入：
-
-1. **OpenAI API**：将自然语言描述直接转成 HTML/CSS 代码
-2. **图像识别**：上传图片自动生成表单字段
-3. **自动部署**：直接发布到 Vercel/Netlify
 
 ## 📁 项目结构
 
 ```
-ailowcode-admin-dashboard/
-├── index.html        # 主页面（包含全部功能）
-├── README.md         # 本文件
-└── .github/          # GitHub Pages 配置（可选）
-    └── workflows/
-        └── deploy.yml
+ios-alarmpkg/
+├── Package.swift       # Swift Package 配置
+└── AlarmApp/
+    ├── main.swift      # 应用入口
+    ├── Alarm.swift     # 闹钟数据结构
+    ├── AddAlarmView.swift   # 添加闹钟子视图
+    ├── AlarmView.swift     # 主界面视图
+    └── AlarmManager.swift # 通知调度管理
 ```
 
-## ⚙️ 技术说明
+## 🧩 扩展建议
 
-- **前端**：纯 HTML5 + CSS3 + ES6+（无框架）
-- **AI 层**：预留 OpenAI API 集成点
-- **部署**：GitHub Pages（免费 CDN 加速）
-- **授权**：MIT 开源协议（可自由商用）
-
----
-
-## 🚀 立即试用
-
-👉 **[点击这里查看在线演示](https://phamcucpqrwbbnposhmn96-ui.github.io/ailowcode-admin-dashboard/)** （部署完成后）
-
-或者克隆本项目后在本地打开 `index.html` 体验。
-
----
-
-**© 2026 AI-LowCode Admin Dashboard | 市场上最缺的蓝海后台系统**
+如需增强功能，可考虑添加：
+- 🎵 自定义铃声选择器（从本地音频文件或系统音库）
+- 🌙 贪睡功能（Snooze - 5/10/15分钟）
+- 🗺️ 基于位置的地理围栏闹钟
+- 📊 使用 Core Data 持久化存储闹钟列表
+- ☀️ 日出/日落自动闹钟
+- 🔄 iCloud 同步多设备闹钟列表
