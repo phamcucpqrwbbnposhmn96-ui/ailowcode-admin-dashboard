@@ -1,4 +1,4 @@
-// swift-tools-version:15.0
+// swift-tools-version:5.9
 import PackageDescription
 
 let package = Package(
@@ -6,13 +6,19 @@ let package = Package(
     platforms: [
         .iOS(.v17)
     ],
-    products: [
-        .executable(name: "AlarmApp", targets: ["AlarmApp"])
-    ],
     targets: [
         .executableTarget(
             name: "AlarmApp",
-            path: "AlarmApp"
+            dependencies: [],
+            path: "AlarmApp",
+            resources: [
+                .copy("Resources")
+            ],
+            linkerSettings: [
+                .linkedFramework("UIKit"),
+                .linkedFramework("SwiftUI"),
+                .linkedFramework("UserNotifications")
+            ]
         )
     ]
 )
